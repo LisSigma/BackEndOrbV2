@@ -11,7 +11,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-VALID_KEY = "4f9cda21-7a8b-4931-9f3e-6f12a6d83d44"
+VALID_KEY = "1"
 
 class ValidateRequest(BaseModel):
     key: str
