@@ -1,21 +1,28 @@
-from flask import Flask, request, jsonify
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
+from fastapi.middleware.cors import CORSMiddleware
 
-app = Flask(__name__)
+app = FastAPI()
 
-# Allowed PlayFab IDs
-ALLOWED_IDS = ["1491EDD0C6AA1B9D"]  # <-- replace/add IDs here
+# Allow requests from your F# loader
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # For testing only! Restrict this in production.
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-@app.route("/auth", methods=["POST"])
-def auth():
-    data = request.get_json()
-    playfab_id = data.get("playfab_id")
-    if not playfab_id:
-        return jsonify({"status": "error", "message": "No PlayFabId provided"}), 400
+# Your hardcoded key
+VALID_KEY = "4f9cda21-7a8b-4931-9f3e-6f12a6d83d44"
 
-    if playfab_id in ALLOWED_IDS:
-        return jsonify({"status": "success", "message": "Authorized"})
+class ValidateRequest(BaseModel):
+    key: str
+
+@app.post("/validate")
+async def validate_license(request: ValidateRequest):
+    if request.key == VALID_KEY:
+        return {"status": "OK", "message": "License valid."}
     else:
-        return jsonify({"status": "fail", "message": "Unauthorized"}), 403
+        raise HTTPException(status_code=401, detail="INVALID_KEY")
 
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+# Run with: `uvicorn main:app --reload`
