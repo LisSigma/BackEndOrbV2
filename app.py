@@ -7,11 +7,22 @@ import socket
 
 app = Flask(__name__)
 
-# Simple JSON "database"
+# Preloaded keys (any keys you want to allow)
+PRELOADED_KEYS = [
+    "8#zP$vR2!yA9-nF6gB4^tH3*eD7qV5@sL9&zW1*xJ4!cO8#pU2$kY6bN7^mZ1%",
+    "sA3^mP8hT2!jF6-gC9$vB5*nK1@dE5*rT8#uI2%oP6-aL4^zQ1@xW7yB9-nF6",
+    "pU2$kY6bN7^mZ1%eR4@tG8*uI3-kL6#oP9qV5@sL9&zW1*xJ4!cO8#8#zP$vR2",
+    "gC9$vB5*nK1@sA3^mP8hT2!jF6-aL4^zQ1@xW7dE5*rT8#uI2%oP6-nF6gB4^",
+    "uI3-kL6#oP9qV5@sL9&zW1*xJ4!cO8#pU2$kY6bN7^mZ1%eR4@tG8*yA9-nF6g"
+]
+
 DB_FILE = "keys.json"
+
+# Initialize DB with preloaded keys
 if not os.path.exists(DB_FILE):
+    keys = {key: {} for key in PRELOADED_KEYS}
     with open(DB_FILE, "w") as f:
-        json.dump({}, f)
+        json.dump(keys, f, indent=4)
 
 def load_keys():
     with open(DB_FILE, "r") as f:
@@ -43,10 +54,9 @@ def validate():
 
     key_info = keys[key]
 
-    # Check IP binding
+    # Check if already used
     if "ip" in key_info and key_info["ip"] != ip:
         return jsonify({"status": "error", "message": "Key already used from another IP"}), 403
-    # Check HWID binding
     if "hwid" in key_info and key_info["hwid"] != hwid:
         return jsonify({"status": "error", "message": "Key already used on another machine"}), 403
 
@@ -58,26 +68,5 @@ def validate():
 
     return jsonify({"status": "success", "message": "Key validated"})
 
-@app.route("/create_key", methods=["POST"])
-def create_key():
-    data = request.json
-    key = data.get("key")
-    if not key:
-        return jsonify({"status": "error", "message": "Key required"}), 400
-
-    keys = load_keys()
-    if key in keys:
-        return jsonify({"status": "error", "message": "Key already exists"}), 400
-
-    keys[key] = {}  # No binding yet
-    save_keys(keys)
-    return jsonify({"status": "success", "message": f"Key {key} created"})
-
-@app.route("/list_keys", methods=["GET"])
-def list_keys():
-    keys = load_keys()
-    return jsonify(keys)
-
 if __name__ == "__main__":
-    # Run on all interfaces so Render can access it
     app.run(host="0.0.0.0", port=5000)
