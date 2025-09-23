@@ -1,10 +1,8 @@
 from flask import Flask, request, jsonify
-import json
-import os
 
 app = Flask(__name__)
 
-# Allowed keys
+# Allowed keys (hardcoded)
 VALID_KEYS = [
     "8#zP$vR2!yA9-nF6gB4^tH3*eD7qV5@sL9&zW1*xJ4!cO8#pU2$kY6bN7^mZ1%",
     "sA3^mP8hT2!jF6-gC9$vB5*nK1@dE5*rT8#uI2%oP6-aL4^zQ1@xW7yB9-nF6",
@@ -13,21 +11,8 @@ VALID_KEYS = [
     "uI3-kL6#oP9qV5@sL9&zW1*xJ4!cO8#pU2$kY6bN7^mZ1%eR4@tG8*yA9-nF6g"
 ]
 
-DB_FILE = "keys.json"
-
-# Initialize DB
-if not os.path.exists(DB_FILE):
-    data = {key: {} for key in VALID_KEYS}
-    with open(DB_FILE, "w") as f:
-        json.dump(data, f, indent=4)
-
-def load_keys():
-    with open(DB_FILE, "r") as f:
-        return json.load(f)
-
-def save_keys(data):
-    with open(DB_FILE, "w") as f:
-        json.dump(data, f, indent=4)
+# Track used keys per IP in memory
+USED_KEYS = {}
 
 @app.route("/validate", methods=["POST"])
 def validate():
@@ -38,22 +23,15 @@ def validate():
     if not key:
         return jsonify({"status": "error", "message": "Key required"}), 400
 
-    keys = load_keys()
-
-    if key not in keys:
+    if key not in VALID_KEYS:
         return jsonify({"status": "error", "message": "Invalid key"}), 403
 
-    key_info = keys[key]
+    # Check if key already used by a different IP
+    if key in USED_KEYS and USED_KEYS[key] != ip:
+        return jsonify({"status": "error", "message": "Key already used by another IP"}), 403
 
-    # Check if already bound to another IP
-    if "ip" in key_info and key_info["ip"] != ip:
-        return jsonify({"status": "error", "message": "Key already used from another IP"}), 403
-
-    # Bind IP
-    key_info["ip"] = ip
-    keys[key] = key_info
-    save_keys(keys)
-
+    # Bind key to this IP
+    USED_KEYS[key] = ip
     return jsonify({"status": "success", "message": "Key valid and bound to your IP"})
 
 if __name__ == "__main__":
