@@ -1,6 +1,4 @@
-flask
-gunicorn
-fastapi 
-uvicorn 
-sqlalchemy 
-aiosqlite
+fastapi
+uvicorn
+pyjwt
+pydantic
